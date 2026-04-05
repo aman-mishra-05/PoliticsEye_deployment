@@ -102,12 +102,19 @@ class RSSScraper:
             posts = []
             now_iso = datetime.datetime.now().isoformat()
             for entry in feed.entries[:limit]:
+                author = getattr(entry, 'author', "Anonymous")
+                if "reddit.com" in url:
+                    if author.startswith("/u/"):
+                        author = author[1:] # /u/name -> u/name
+                    elif not author.startswith("u/"):
+                        author = f"u/{author}"
+                
                 posts.append({
                     "id": entry.id,
                     "text": entry.title,
                     "timestamp": now_iso,
                     "source": "Reddit RSS",
-                    "author": getattr(entry, 'author', "Anonymous")
+                    "author": author
                 })
             return posts
         except Exception as e:
@@ -139,7 +146,12 @@ class PoliticalStreamer:
         self.rss = RSSScraper()
         self.mock = MockScraper()
         
-        self.buffer = deque(maxlen=100)
+        self.buffers = {
+            "mock": deque(maxlen=100),
+            "news": deque(maxlen=100),
+            "live": deque(maxlen=100),
+            "rss": deque(maxlen=100)
+        }
         self.stats_history = deque(maxlen=50)
         self.entity_counts = {}
         self.known_ids = set() # O(1) lookup for duplicates
@@ -149,60 +161,71 @@ class PoliticalStreamer:
         self._sum_score = 0.0
         self._pos_count = 0
         self._neg_count = 0
-
+        
         self.pending_queue = deque()
+        self._last_fetch_time = 0
         self._running = False
         self._thread = None
         
         if self.reddit.enabled:
-            self.mode = "live"
+            self._mode = "live"
         elif self.news.enabled:
-            self.mode = "news"
+            self._mode = "news"
         else:
-            self.mode = "mock"
+            self._mode = "mock"
+
+    @property
+    def mode(self):
+        return self._mode
+
+    @mode.setter
+    def mode(self, value):
+        if value != self._mode:
+            self._mode = value
+            self.pending_queue.clear()
+            self._last_fetch_time = 0 # Trigger immediate fetch
 
     def _stream_worker(self):
-        last_fetch_time = 0
-        fetch_interval = 60
-
         while self._running:
+            active_mode = self.mode # Capture current mode for the entire iteration
             if not self.pending_queue:
                 current_time = time.time()
-                if current_time - last_fetch_time > fetch_interval:
+                if current_time - self._last_fetch_time > 60:
                     new_posts = []
-                    if self.mode == "live":
+                    if active_mode == "live":
                         new_posts = self.reddit.fetch_recent(limit=20)
-                    elif self.mode == "news":
+                    elif active_mode == "news":
                         new_posts = self.news.fetch_recent(limit=20)
-                    elif self.mode == "rss":
+                    elif active_mode == "rss":
                         new_posts = self.rss.fetch_recent(limit=25)
                     
                     if new_posts:
                         for post in new_posts:
                             if post['id'] not in self.known_ids:
                                 self.pending_queue.append(post)
-                        last_fetch_time = current_time
+                        self._last_fetch_time = current_time
 
             if self.pending_queue:
                 post = self.pending_queue.popleft()
                 post['entities'] = [w for w in post['text'].split() if len(w) > 5][:3]
-                self._process_and_add(post)
+                self._process_and_add(post, active_mode)
             else:
-                self._process_and_add(self.mock.generate_post())
+                self._process_and_add(self.mock.generate_post(), "mock")
             
             self._update_stats_rolling()
             time.sleep(random.uniform(1.2, 2.5))
 
-    def _process_and_add(self, post):
+    def _process_and_add(self, post, mode):
         analysis = self.analyzer.get_sentiment(post['text'])
         post.update(analysis)
         
-        # Maintain buffer and ID set
-        if len(self.buffer) >= self.buffer.maxlen:
-             old_post = self.buffer.pop()
+        # Maintain mode-specific buffer and ID set
+        target_buffer = self.buffers.get(mode, self.buffers["mock"])
+        if len(target_buffer) >= target_buffer.maxlen:
+             old_post = target_buffer.pop()
              self.known_ids.discard(old_post['id'])
         
-        self.buffer.appendleft(post)
+        target_buffer.appendleft(post)
         self.known_ids.add(post['id'])
         
         # Update rolling statistics window
@@ -229,7 +252,7 @@ class PoliticalStreamer:
             "avg_sentiment": round(self._sum_score / count, 3),
             "pos_ratio": round(self._pos_count / count, 2),
             "neg_ratio": round(self._neg_count / count, 2),
-            "volume": len(self.buffer)
+            "volume": len(self.buffers[self.mode])
         })
 
     def start(self):
@@ -244,7 +267,7 @@ class PoliticalStreamer:
     def get_snapshot(self):
         top_entities = sorted(self.entity_counts.items(), key=lambda x: x[1], reverse=True)[:8]
         return {
-            "latest_posts": list(self.buffer)[:15],
+            "latest_posts": list(self.buffers.get(self.mode, []))[:15],
             "history": list(self.stats_history),
             "trending": [{"name": k, "count": v} for k, v in top_entities],
             "summary": self.stats_history[-1] if self.stats_history else {},

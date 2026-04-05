@@ -102,6 +102,16 @@ h3 {
 .big-number {
   font-size: 36px;
   font-weight: 700;
+  line-height: 1.1;
+  margin-top: 4px;
+}
+
+.sentiment-range-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-left: 13px;
+  letter-spacing: 0.05em;
 }
 
 /* Post Cards */
@@ -179,11 +189,167 @@ h3 {
   border-color: var(--text-muted);
 }
 
-/* Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
+/* Sentiment Range */
+.range-container {
+  margin-top: 16px;
+  position: relative;
 }
+
+.range-track {
+  height: 6px;
+  background: linear-gradient(to right, var(--neg), #444, var(--pos));
+  border-radius: 10px;
+  position: relative;
+  margin-bottom: 8px;
+}
+
+.range-marker {
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border: 2px solid var(--bg);
+  border-radius: 50%;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  transition: left 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
+}
+
+.range-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 ::-webkit-scrollbar-thumb {
   background: var(--border);
   border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Loading Screen */
+.loading-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background-color: var(--bg);
+}
+
+.loading-screen p {
+  color: #555;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-top: 16px;
+}
+
+/* Sidebar Header */
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 32px;
+}
+
+.sidebar-header h1 {
+  margin-bottom: 0;
+}
+
+.button-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+/* Avatar */
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #222;
+  border: 1px solid #333;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: #555;
+}
+
+/* Keyword Rows */
+.keyword-list {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.keyword-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+
+.keyword-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #ccc;
+}
+
+.keyword-count {
+  font-weight: 700;
+  color: #555;
+}
+
+/* Sentiment Metrics */
+.sentiment-metrics {
+  display: flex;
+  justify-content: space-between;
+  text-align: center;
+  margin-top: 24px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Error Banner */
+.error-banner {
+  margin-bottom: 24px;
+  padding: 16px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 12px;
+  color: var(--neg);
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Feed List */
+.feed-stream {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }

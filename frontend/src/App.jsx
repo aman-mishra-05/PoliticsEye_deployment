@@ -21,7 +21,7 @@ const PostCard = React.memo(({ post }) => (
   >
     <div className="post-header">
       <div className="user-info">
-        <div className="w-8 h-8 rounded-full bg-[#222] border border-[#333] flex items-center justify-center text-[10px] font-bold text-[#555]">
+        <div className="user-avatar">
           {post.author[post.author.startsWith('u/') ? 2 : 0].toUpperCase()}
         </div>
         <div>
@@ -83,9 +83,9 @@ const App = () => {
 
   if (loading && !error) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-[#0a0a0a]">
-        <Activity className="w-8 h-8 text-blue-500 animate-pulse mb-4" />
-        <p className="text-sm font-bold uppercase tracking-widest text-[#555]">Initializing Optimized Dashboard</p>
+      <div className="loading-screen">
+        <Activity className="animate-pulse" size={32} color="#3b82f6" />
+        <p>Initializing Optimized Dashboard</p>
       </div>
     );
   }
@@ -94,57 +94,57 @@ const App = () => {
     <div className="dashboard">
       {/* SIDEBAR */}
       <aside className="sidebar">
-        <div className="flex items-center gap-3 mb-8">
-           <Shield className="w-6 h-6 text-blue-500" />
+        <div className="sidebar-header">
+           <Shield size={24} color="#3b82f6" />
            <h1>POLITICSEYE</h1>
         </div>
 
-        <div className="btn-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+        <div className="btn-group button-grid">
           <button onClick={() => toggleMode('mock')} className={`btn ${data.mode === 'mock' ? 'active' : ''}`}>MOCK</button>
           <button onClick={() => toggleMode('news')} className={`btn ${data.mode === 'news' ? 'active' : ''}`}>NEWS</button>
           <button onClick={() => toggleMode('rss')} className={`btn ${data.mode === 'rss' ? 'active' : ''}`}>REDDIT</button>
           <button onClick={() => toggleMode('live')} className={`btn ${data.mode === 'live' ? 'active' : ''}`}>LIVE</button>
         </div>
 
-        <section className="stat-section">
+        <section className="stat-section" style={{ marginBottom: '30px' }}>
            <h2>Sentiment Average</h2>
-           <div className="flex items-baseline gap-2">
+           <div className="flex items-baseline">
               <span className={`big-number ${data.summary.avg_sentiment >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
                 {data.summary.avg_sentiment?.toFixed(3) || "0.000"}
               </span>
+              <span className="sentiment-range-label">-1 TO +1</span>
            </div>
         </section>
 
         <section className="stat-section">
-           <h2>Stream Velocity</h2>
-           <div className="h-[120px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                 <AreaChart data={chartData}>
-                    <defs>
-                       <linearGradient id="colorWave" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                       </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#222" />
-                    <XAxis dataKey="time" hide />
-                    <YAxis hide domain={['auto', 'auto']} />
-                    <Area type="monotone" dataKey="volume" stroke="#3b82f6" fill="url(#colorWave)" strokeWidth={2} isAnimationActive={false} />
-                 </AreaChart>
-              </ResponsiveContainer>
+           <h2>Sentiment Score Range</h2>
+           <div className="range-container">
+              <div className="range-track">
+                 <div className="range-marker" style={{ left: `${((data.summary.avg_sentiment || 0) + 1) * 50}%` }}></div>
+              </div>
+              <div className="range-labels">
+                 <span>-1.0</span>
+                 <span>NEUTRAL</span>
+                 <span>+1.0</span>
+              </div>
+           </div>
+           <div className="sentiment-metrics">
+              <span className="text-emerald-400">{((data.summary.pos_ratio || 0) * 100).toFixed(0)}% Pos</span>
+              <span className="text-[#555]"> {((1 - (data.summary.pos_ratio || 0) - (data.summary.neg_ratio || 0)) * 100).toFixed(0)}% Neu</span>
+              <span className="text-rose-400">{((data.summary.neg_ratio || 0) * 100).toFixed(0)}% Neg</span>
            </div>
         </section>
 
         <section className="stat-section">
            <h2>Top Keywords</h2>
-           <div className="space-y-3 mt-4">
+           <div className="keyword-list">
               {data.trending?.map((t, i) => (
-                <div key={i} className="flex justify-between items-center text-[13px]">
-                   <span className="flex items-center gap-2 text-[#ccc]">
-                     <Hash className="w-3.5 h-3.5 text-blue-500" style={{ transform: 'translateY(2.5px)' }} /> 
+                <div key={i} className="keyword-row">
+                   <span className="keyword-label">
+                     <Hash size={14} color="#3b82f6" /> 
                      {t.name}
                    </span>
-                   <span className="font-bold text-[#555]">{t.count}</span>
+                   <span className="keyword-count">{t.count}</span>
                 </div>
               ))}
            </div>
@@ -162,9 +162,14 @@ const App = () => {
            </div>
         </div>
 
-        {error && <div className="mb-6 p-4 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-500 text-sm flex items-center gap-3"><AlertCircle className="w-4 h-4"/>{error}</div>}
+         {error && (
+            <div className="error-banner">
+               <AlertCircle size={16} />
+               {error}
+            </div>
+         )}
 
-        <div className="space-y-4">
+         <div className="feed-stream">
            <AnimatePresence mode="popLayout" initial={false}>
               {filteredPosts.map((post) => (
                 <PostCard key={post.id} post={post} />
