@@ -1,0 +1,8 @@
+flask
+flask-cors
+praw
+nltk
+vaderSentiment
+pandas
+numpy
+python-dotenv
