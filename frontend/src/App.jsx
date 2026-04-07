@@ -104,7 +104,10 @@ const App = () => {
 
         <div className={`server-status ${serverStatus}`}>
           <div className="status-dot"></div>
-          <span>Server: {serverStatus.toUpperCase()}</span>
+          <div className="status-text-stack">
+            <span>Server: {serverStatus.toUpperCase()}</span>
+            <small>{serverStatus === 'online' ? 'System Running' : 'Attempting to Connect'}</small>
+          </div>
         </div>
 
         <div className="btn-group button-grid">
@@ -177,13 +180,20 @@ const App = () => {
             </div>
          )}
 
-         <div className="feed-stream">
-           <AnimatePresence mode="popLayout" initial={false}>
-              {filteredPosts.map((post) => (
-                <PostCard key={post.id} post={post} />
-              ))}
-           </AnimatePresence>
-        </div>
+          <div className="feed-stream">
+            <AnimatePresence mode="popLayout" initial={false}>
+               {filteredPosts.length > 0 ? (
+                 filteredPosts.map((post) => (
+                   <PostCard key={post.id} post={post} />
+                 ))
+               ) : serverStatus === 'online' ? (
+                 <div className="feed-loading">
+                    <Activity className="animate-spin" size={24} color="#3b82f6" />
+                    <p>Buffering active stream... Signal expected in 5-10s</p>
+                 </div>
+               ) : null}
+            </AnimatePresence>
+          </div>
       </main>
     </div>
   );
