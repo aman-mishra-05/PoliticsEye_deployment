@@ -1,0 +1,45 @@
+services:
+
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - mongo_data:/data/db
+      - ./mongo-init/mongod.conf:/etc/mongod.conf:ro
+    command: ["mongod", "--config", "/etc/mongod.conf"]
+    expose:
+      - "27017"
+    mem_limit: 512m
+    networks:
+      - backend_net          # only on backend network, frontend can't reach it
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    env_file: .env
+    expose:
+      - "5000"
+    depends_on:
+      - mongo
+    networks:
+      - backend_net          # talks to mongo
+      - frontend_net         # talks to frontend/nginx
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - frontend_net         # only talks to backend, completely isolated from mongo
+
+networks:
+  frontend_net:
+    driver: bridge
+  backend_net:
+    driver: bridge
+
+volumes:
+  mongo_data:
