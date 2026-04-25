@@ -17,7 +17,7 @@
 **Live at:** https://politicseye.run.place  
 **Contact:** amanmishraproff@gmail.com
 
-![PoliticsEye Live](https://raw.githubusercontent.com/aman-mishra-05/PoliticsEye_deployment/main/screenshot.png)
+![PoliticsEye Live](https://raw.githubusercontent.com/aman-mishra-05/PoliticsEye_deployment/main/assets/screenshot.png)
 
 ---
 
