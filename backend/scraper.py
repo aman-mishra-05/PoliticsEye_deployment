@@ -389,6 +389,7 @@ class PoliticalStreamer:
     def _process_and_add(self, post, mode):
         analysis = self.analyzer.get_sentiment(post['text'])
         post.update(analysis)
+        post['mode'] = mode # Ensure the mode is saved with the post
         
         # Maintain mode-specific buffer and ID set
         target_buffer = self.buffers.get(mode, self.buffers["mock"])
@@ -441,19 +442,20 @@ class PoliticalStreamer:
     def get_snapshot(self):
         top_entities = sorted(self.entity_counts.items(), key=lambda x: x[1], reverse=True)[:8]
         
-        # Determine the best posts to show
-        mode_posts = list(self.buffers.get(self.mode, []))[:15]
+        # Determine the best posts to show (fetch from MongoDB for cross-worker consistency)
+        active_mode = self.mode
+        mode_posts = self.db.get_latest_posts(active_mode, limit=15)
         fallback_posts = []
         
         # If active mode is empty, provide mock posts as a temporary fallback
-        if not mode_posts and self.mode != "mock":
-            fallback_posts = list(self.buffers.get("mock", []))[:10]
+        if not mode_posts and active_mode != "mock":
+            fallback_posts = self.db.get_latest_posts("mock", limit=10)
 
         return {
             "latest_posts": mode_posts,
             "fallback_posts": fallback_posts,
-            "history": list(self.stats_history),
+            "history": list(self.stats_history), # Keep Session Pulse for now
             "trending": [{"name": k, "count": v} for k, v in top_entities],
-            "summary": self.stats_history[-1] if self.stats_history else {},
-            "mode": self.mode
+            "summary": self.db.get_mode_summary(active_mode, limit=20),
+            "mode": active_mode
         }

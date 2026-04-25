@@ -86,6 +86,13 @@ const SentimentChart = React.memo(({ chartData, title, height = "220px" }) => (
 
 const App = () => {
   const [data, setData] = useState({ latest_posts: [], fallback_posts: [], history: [], summary: {}, trending: [], mode: 'mock' });
+  const activeModeRef = React.useRef(data.mode);
+  
+  // Sync ref with current intended mode (updated optimistically or from server)
+  useEffect(() => {
+    activeModeRef.current = data.mode;
+  }, [data.mode]);
+
   const [loading, setLoading] = useState(true);
   const [serverStatus, setServerStatus] = useState('connecting');
   const [error, setError] = useState(null);
@@ -115,6 +122,14 @@ const App = () => {
   const fetchData = useCallback(async () => {
     try {
       const response = await axios.get(`${API_BASE}/snapshot`);
+      
+      // STALE SNAPSHOT PROTECTION:
+      // If the server reports a mode that isn't the one we are currently showing/switching to,
+      // ignore the update to prevent the UI from flickering back to the old mode.
+      if (response.data.mode !== activeModeRef.current) {
+        return;
+      }
+
       setData(response.data);
       setServerStatus('online');
       if (loading) setLoading(false);

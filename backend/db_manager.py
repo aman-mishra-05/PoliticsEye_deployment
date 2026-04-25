@@ -44,6 +44,7 @@ class MongoManager:
             else:
                 post_data['dt'] = datetime.now()
 
+            # Ensure we don't lose the mode if it's already set or provided
             self.posts.update_one(
                 {"id": post_data["id"]},
                 {"$set": post_data},
@@ -51,6 +52,45 @@ class MongoManager:
             )
         except Exception as e:
             print(f"Error saving to MongoDB: {e}")
+
+    def get_latest_posts(self, mode, limit=15):
+        """Fetches the latest posts for a specific mode from MongoDB."""
+        try:
+            cursor = self.posts.find(
+                {"mode": mode}, 
+                {"_id": 0}
+            ).sort("dt", -1).limit(limit)
+            return list(cursor)
+        except Exception as e:
+            print(f"Error fetching latest posts for {mode}: {e}")
+            return []
+
+    def get_mode_summary(self, mode, limit=20):
+        """Calculates sentiment summary for the latest posts of a specific mode."""
+        try:
+            posts = list(self.posts.find(
+                {"mode": mode}
+            ).sort("dt", -1).limit(limit))
+            
+            if not posts:
+                return {"avg_sentiment": 0, "pos_ratio": 0, "neg_ratio": 0, "pos_count": 0, "neg_count": 0, "total_count": 0}
+                
+            total_count = len(posts)
+            sum_score = sum(p.get('score', 0) for p in posts)
+            pos_count = sum(1 for p in posts if p.get('sentiment') == 'positive')
+            neg_count = sum(1 for p in posts if p.get('sentiment') == 'negative')
+            
+            return {
+                "avg_sentiment": round(sum_score / total_count, 3),
+                "pos_ratio": round(pos_count / total_count, 2),
+                "neg_ratio": round(neg_count / total_count, 2),
+                "pos_count": pos_count,
+                "neg_count": neg_count,
+                "total_count": total_count
+            }
+        except Exception as e:
+            print(f"Error calculating mode summary for {mode}: {e}")
+            return {"avg_sentiment": 0, "pos_ratio": 0, "neg_ratio": 0, "pos_count": 0, "neg_count": 0, "total_count": 0}
 
     def get_time_series(self, limit=50):
         """Returns sentiment data over time, sorted chronologically."""
