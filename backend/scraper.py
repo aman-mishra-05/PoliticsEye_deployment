@@ -313,21 +313,35 @@ class PoliticalStreamer:
         self._thread = None
         
         if self.news.enabled:
-            self._mode = "news"
+            default_mode = "news"
         else:
-            self._mode = "rss"
+            default_mode = "rss"
         
-        # Override if mastodon is preferred starting point
-        self._mode = "mastodon"
+        # Initialize mode from DB if exists, otherwise use default
+        self._mode = self.db.get_mode(default=default_mode)
 
     @property
     def mode(self):
+        """Returns the current mode, synced with MongoDB to support multi-worker environments."""
+        try:
+            # Check DB for updates from other processes
+            current_db_mode = self.db.get_mode(default=self._mode)
+            if current_db_mode != self._mode:
+                # Mode changed in another worker!
+                self._mode = current_db_mode
+                self.pending_queue.clear()
+                self._last_fetch_time = 0 # Force immediate fetch for the new mode
+        except Exception:
+            pass # Fallback to local _mode if DB fails
+            
         return self._mode
 
     @mode.setter
     def mode(self, value):
+        """Sets the mode and persists it to MongoDB for all workers to see."""
         if value != self._mode:
             self._mode = value
+            self.db.set_mode(value) # Persist so other workers sync
             self.pending_queue.clear()
             self._last_fetch_time = 0 # Trigger immediate fetch
 

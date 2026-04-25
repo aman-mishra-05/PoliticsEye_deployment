@@ -152,13 +152,17 @@ const App = () => {
   }, [data.latest_posts, filter]);
 
   const toggleMode = useCallback(async (newMode) => {
+    // Optimistic Update: Set mode immediately so buttons highlight and feed clears
+    setData(prev => ({ ...prev, mode: newMode, latest_posts: [], fallback_posts: [] }));
+    setRelatedIds([]);
+    setActivePostId(null);
+
     try {
       await axios.post(`${API_BASE}/toggle-mode`, { mode: newMode });
-      setRelatedIds([]);
-      setActivePostId(null);
       fetchData();
     } catch (err) {
       alert(err.response?.data?.error || "Failed to switch mode");
+      fetchData(); // Rollback to actual server state
     }
   }, [fetchData]);
 

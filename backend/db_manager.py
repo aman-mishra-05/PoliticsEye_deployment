@@ -9,7 +9,28 @@ class MongoManager:
         self.client = MongoClient(self.uri)
         self.db = self.client[db_name]
         self.posts = self.db.posts
+        self.settings = self.db.settings # New collection for app state
         print(f"Connected to MongoDB at {self.uri}")
+
+    def get_mode(self, default="rss"):
+        """Fetches the current application mode from settings."""
+        try:
+            setting = self.settings.find_one({"key": "app_mode"})
+            return setting.get("value", default) if setting else default
+        except Exception as e:
+            print(f"Error fetching mode: {e}")
+            return default
+
+    def set_mode(self, mode):
+        """Persists the application mode to settings."""
+        try:
+            self.settings.update_one(
+                {"key": "app_mode"},
+                {"$set": {"value": mode}},
+                upsert=True
+            )
+        except Exception as e:
+            print(f"Error saving mode: {e}")
 
     def save_post(self, post_data):
         """Saves an analyzed post to MongoDB."""
