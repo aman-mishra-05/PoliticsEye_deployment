@@ -8,7 +8,10 @@
   <img src="https://img.shields.io/badge/Flask-000000?style=flat&logo=flask&logoColor=white"/>
   <img src="https://img.shields.io/badge/Let's_Encrypt-003A70?style=flat&logo=letsencrypt&logoColor=white"/>
   <img src="https://img.shields.io/badge/Ubuntu-E95420?style=flat&logo=ubuntu&logoColor=white"/>
+  <img src="https://img.shields.io/badge/GitHub_Actions-2088FF?style=flat&logo=githubactions&logoColor=white"/>
 </p>
+
+![Deploy to EC2](https://github.com/aman-mishra-05/PoliticsEye_deployment/actions/workflows/deploy.yml/badge.svg)
 
 > Production deployment of [PoliticsEye](https://github.com/areebmohd/PoliticsEye) — a Real-Time Political Sentiment Tracker. This repository documents the complete infrastructure setup, containerisation, database migration, and deployment automation on AWS.
 
@@ -17,7 +20,7 @@
 **Live at:** https://politicseye.run.place  
 **Contact:** amanmishraproff@gmail.com
 
-![PoliticsEye Live](https://raw.githubusercontent.com/aman-mishra-05/PoliticsEye_deployment/main/assets/screenshot.png)
+![PoliticsEye Live](./screenshot.png)
 
 ---
 
@@ -30,6 +33,7 @@
 - [AWS Infrastructure](#aws-infrastructure)
 - [Database Migration](#database-migration)
 - [SSL and HTTPS](#ssl-and-https)
+- [CI/CD Pipeline](#cicd-pipeline)
 - [Auto-start on Reboot](#auto-start-on-reboot)
 - [Automated Backups](#automated-backups)
 - [Deployment Guide](#deployment-guide)
@@ -51,6 +55,7 @@ This deployment covers the full production infrastructure for PoliticsEye. The a
 | Database | MongoDB containerised; 51,782 documents migrated from Atlas |
 | Web Server | Nginx reverse proxy with React SPA routing and HTTPS |
 | SSL/HTTPS | Let's Encrypt certificates via Certbot with auto-renewal |
+| CI/CD | GitHub Actions pipeline — auto-deploys to EC2 on every push to main |
 | Reliability | systemd service for auto-start, daily automated backups |
 | Domain | Custom domain configured via DNS A record |
 
@@ -109,6 +114,9 @@ The `mongo` container is completely isolated — unreachable from the internet a
 
 ```
 PoliticsEye/
+├── .github/
+│   └── workflows/
+│       └── deploy.yml          ← Added for deployment
 ├── backend/
 │   ├── Dockerfile              ← Added for deployment
 │   └── ...                     (application source — original)
@@ -369,6 +377,65 @@ The pre-hook stops the Nginx container to free port 80 for ACME domain verificat
 
 ---
 
+## CI/CD Pipeline
+
+A **GitHub Actions** workflow automates deployment to EC2 on every push to the `main` branch — eliminating the need for manual SSH deployments.
+
+### `.github/workflows/deploy.yml`
+
+```yaml
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to EC2 via SSH
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/PoliticsEye
+            git pull origin main
+            docker-compose rm -f frontend backend
+            docker-compose up -d --build
+```
+
+### How it works
+
+```
+Developer pushes to main
+        ↓
+GitHub Actions triggers automatically
+        ↓
+Runner SSHes into EC2 using stored secrets
+        ↓
+git pull → docker-compose rebuild
+        ↓
+New version live at https://politicseye.run.place
+```
+
+### Secrets configuration
+
+Two repository secrets are required under **Settings → Secrets and variables → Actions**:
+
+| Secret | Value |
+|---|---|
+| `EC2_HOST` | EC2 Elastic IP address |
+| `EC2_SSH_KEY` | Full contents of the EC2 `.pem` private key |
+
+---
+
 ## Auto-start on Reboot
 
 A **systemd service** ensures all containers restart automatically following any EC2 reboot or unexpected shutdown.
@@ -524,6 +591,7 @@ sudo systemctl status politicseye
 | HTTPS via Let's Encrypt (Certbot standalone) | ✅ |
 | HTTP → HTTPS permanent redirect | ✅ |
 | SSL certificate auto-renewal via cron | ✅ |
+| GitHub Actions CI/CD pipeline (auto-deploy on push) | ✅ |
 | Auto-start on EC2 reboot via systemd | ✅ |
 | Daily automated MongoDB backups (7-day retention) | ✅ |
 
@@ -542,5 +610,6 @@ sudo systemctl status politicseye
 | AWS EBS | gp3 30GB | Persistent volume storage |
 | Let's Encrypt | — | SSL certificate authority |
 | Certbot | — | Certificate provisioning and renewal |
+| GitHub Actions | — | CI/CD pipeline — auto-deploy on push |
 | systemd | — | Process supervision and auto-start |
 | Ubuntu | 22.04 LTS | Host operating system |
