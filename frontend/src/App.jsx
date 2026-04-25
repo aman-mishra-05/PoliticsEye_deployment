@@ -86,13 +86,7 @@ const SentimentChart = React.memo(({ chartData, title, height = "220px" }) => (
 
 const App = () => {
   const [data, setData] = useState({ latest_posts: [], fallback_posts: [], history: [], summary: {}, trending: [], mode: 'mock' });
-  const activeModeRef = React.useRef(data.mode);
-  
-  // Sync ref with current intended mode (updated optimistically or from server)
-  useEffect(() => {
-    activeModeRef.current = data.mode;
-  }, [data.mode]);
-
+  const [selectedMode, setSelectedMode] = useState(null);
   const [loading, setLoading] = useState(true);
   const [serverStatus, setServerStatus] = useState('connecting');
   const [error, setError] = useState(null);
@@ -122,15 +116,7 @@ const App = () => {
   const fetchData = useCallback(async () => {
     try {
       const response = await axios.get(`${API_BASE}/snapshot`);
-      
-      // STALE SNAPSHOT PROTECTION:
-      // If the server reports a mode that isn't the one we are currently showing/switching to,
-      // ignore the update to prevent the UI from flickering back to the old mode.
-      if (response.data.mode !== activeModeRef.current) {
-        return;
-      }
-
-      setData(response.data);
+      setData(prev => ({ ...response.data, mode: selectedMode || response.data.mode }));
       setServerStatus('online');
       if (loading) setLoading(false);
       setError(null);
@@ -167,17 +153,15 @@ const App = () => {
   }, [data.latest_posts, filter]);
 
   const toggleMode = useCallback(async (newMode) => {
-    // Optimistic Update: Set mode immediately so buttons highlight and feed clears
-    setData(prev => ({ ...prev, mode: newMode, latest_posts: [], fallback_posts: [] }));
-    setRelatedIds([]);
-    setActivePostId(null);
-
     try {
+      setSelectedMode(newMode);
       await axios.post(`${API_BASE}/toggle-mode`, { mode: newMode });
+      setRelatedIds([]);
+      setActivePostId(null);
       fetchData();
     } catch (err) {
+      setSelectedMode(null);
       alert(err.response?.data?.error || "Failed to switch mode");
-      fetchData(); // Rollback to actual server state
     }
   }, [fetchData]);
 
@@ -244,12 +228,12 @@ const App = () => {
         </div>
 
         <div className="btn-group button-grid">
-          <button onClick={() => toggleMode('mock')} className={`btn ${data.mode === 'mock' ? 'active' : ''}`}>MOCK</button>
-          <button onClick={() => toggleMode('news')} className={`btn ${data.mode === 'news' ? 'active' : ''}`}>NEWS</button>
-          <button onClick={() => toggleMode('rss')} className={`btn ${data.mode === 'rss' ? 'active' : ''}`}>REDDIT</button>
-          <button onClick={() => toggleMode('youtube')} className={`btn ${data.mode === 'youtube' ? 'active' : ''}`}>YOUTUBE</button>
-          <button onClick={() => toggleMode('twitter')} className={`btn ${data.mode === 'twitter' ? 'active' : ''}`}>TWITTER</button>
-                    <button onClick={() => toggleMode('mastodon')} className={`btn ${data.mode === 'mastodon' ? 'active' : ''}`}>MASTODON</button>
+          <button onClick={() => toggleMode('mock')} className={`btn ${(selectedMode || data.mode) === 'mock' ? 'active' : ''}`}>MOCK</button>
+          <button onClick={() => toggleMode('news')} className={`btn ${(selectedMode || data.mode) === 'news' ? 'active' : ''}`}>NEWS</button>
+          <button onClick={() => toggleMode('rss')} className={`btn ${(selectedMode || data.mode) === 'rss' ? 'active' : ''}`}>REDDIT</button>
+          <button onClick={() => toggleMode('youtube')} className={`btn ${(selectedMode || data.mode) === 'youtube' ? 'active' : ''}`}>YOUTUBE</button>
+          <button onClick={() => toggleMode('twitter')} className={`btn ${(selectedMode || data.mode) === 'twitter' ? 'active' : ''}`}>TWITTER</button>
+          <button onClick={() => toggleMode('mastodon')} className={`btn ${(selectedMode || data.mode) === 'mastodon' ? 'active' : ''}`}>MASTODON</button>
         </div>
 
 
