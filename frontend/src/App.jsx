@@ -320,6 +320,30 @@ const App = () => {
                     </ResponsiveContainer>
                   </div>
                 )}
+             {searchResult.posts?.length > 0 && (
+                  <div style={{marginTop: '12px', maxHeight: '400px', overflowY: 'auto'}}>
+                    {searchResult.posts.map((post, i) => (
+                      <div key={i} style={{
+                        background: 'rgba(255,255,255,0.05)',
+                        borderRadius: '8px',
+                        padding: '10px',
+                        marginBottom: '8px',
+                        fontSize: '0.8rem'
+                      }}>
+                        <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '4px'}}>
+                          <span style={{color: '#888'}}>{post.author} · {post.source}</span>
+                          <span style={{
+                            color: post.sentiment === 'positive' ? '#10b981' : post.sentiment === 'negative' ? '#ef4444' : '#888',
+                            fontSize: '0.75rem'
+                          }}>
+                            {post.sentiment?.toUpperCase()}
+                          </span>
+                        </div>
+                        <p style={{margin: 0, color: '#ccc', lineHeight: '1.4'}}>{post.text}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
              </motion.div>
            )}
         </section>
