@@ -21,6 +21,7 @@ jobs:
           script: |
             cd ~/PoliticsEye
             git pull origin main
-            docker-compose restart backend
             docker-compose rm -f frontend backend
             docker-compose up -d --build
+            sleep 15
+            docker-compose logs backend --tail=30
