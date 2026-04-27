@@ -19,10 +19,10 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            cd ~/PoliticsEye
-            git pull origin main
-            docker stop $(docker ps -aq) || true
-            docker rm $(docker ps -aq) || true
-            docker-compose up -d --build
-            sleep 20
-            docker-compose logs --tail=50 backend
+  cd ~/PoliticsEye
+  git pull origin main
+  docker-compose down --remove-orphans
+  docker system prune -f
+  docker-compose up -d --build
+  sleep 20
+  docker-compose logs --tail=50 backend
