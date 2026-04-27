@@ -115,8 +115,8 @@ class MongoManager:
 
      
         def search_keyword(self, keyword):
-                try:
-                    regex = re.compile(re.escape(keyword), re.IGNORECASE)
+        try:
+            regex = re.compile(re.escape(keyword), re.IGNORECASE)
             matches = list(self.posts.find(
                 {"text": {"$regex": regex}},
                 {"score": 1, "sentiment": 1, "dt": 1, "text": 1, "author": 1, "source": 1, "_id": 0}
@@ -160,7 +160,7 @@ class MongoManager:
         except Exception as e:
             print(f"Error searching keyword: {e}")
             return {"count": 0, "avg_sentiment": 0, "status": "error", "time_series": [], "posts": []}
-
+            
     def get_historical_stats(self, period="daily"):
         """Returns aggregated sentiment statistics for different time periods."""
         try:
