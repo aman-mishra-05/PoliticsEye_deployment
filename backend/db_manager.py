@@ -115,51 +115,53 @@ class MongoManager:
 
      
         def search_keyword(self, keyword):
-        try:
-            regex = re.compile(re.escape(keyword), re.IGNORECASE)
-            matches = list(self.posts.find(
-                {"text": {"$regex": regex}},
-                {"score": 1, "sentiment": 1, "dt": 1, "text": 1, "author": 1, "source": 1, "_id": 0}
-            ).sort("dt", -1).limit(50))
+    try:
+        regex = re.compile(re.escape(keyword), re.IGNORECASE)
+        matches = list(self.posts.find(
+            {"text": {"$regex": regex}},
+            {"score": 1, "sentiment": 1, "dt": 1, "text": 1,
+                "author": 1, "source": 1, "_id": 0}
+        ).sort("dt", -1).limit(50))
 
-            if not matches:
-                return {"count": 0, "avg_sentiment": 0, "status": "no_results", "time_series": [], "posts": []}
+        if not matches:
+            return {"count": 0, "avg_sentiment": 0, "status": "no_results", "time_series": [], "posts": []}
 
-            total_score = sum(m['score'] for m in matches)
-            count = len(matches)
+        total_score = sum(m['score'] for m in matches)
+        count = len(matches)
 
-            time_series = []
-            posts = []
-            for m in matches:
-                dt_str = m.get('dt')
-                if isinstance(dt_str, datetime):
-                    dt_str = dt_str.isoformat()
+        time_series = []
+        posts = []
+        for m in matches:
+            dt_str = m.get('dt')
+            if isinstance(dt_str, datetime):
+                dt_str = dt_str.isoformat()
 
-                time_series.append({
-                    "score": m['score'],
-                    "sentiment": m['sentiment'],
-                    "timestamp": dt_str
-                })
-                posts.append({
-                    "text": m.get('text', ''),
-                    "author": m.get('author', 'Anonymous'),
-                    "source": m.get('source', ''),
-                    "sentiment": m.get('sentiment', 'neutral'),
-                    "score": m.get('score', 0),
-                    "timestamp": dt_str
-                })
+            time_series.append({
+                "score": m['score'],
+                "sentiment": m['sentiment'],
+                "timestamp": dt_str
+            })
+            posts.append({
+                "text": m.get('text', ''),
+                "author": m.get('author', 'Anonymous'),
+                "source": m.get('source', ''),
+                "sentiment": m.get('sentiment', 'neutral'),
+                "score": m.get('score', 0),
+                "timestamp": dt_str
+            })
 
-            return {
-                "keyword": keyword,
-                "count": count,
-                "avg_sentiment": round(total_score / count, 3),
-                "time_series": sorted(time_series, key=lambda x: x['timestamp'])[:100],
-                "posts": posts,
-                "status": "success"
-            }
-        except Exception as e:
-            print(f"Error searching keyword: {e}")
-            return {"count": 0, "avg_sentiment": 0, "status": "error", "time_series": [], "posts": []}
+        return {
+            "keyword": keyword,
+            "count": count,
+            "avg_sentiment": round(total_score / count, 3),
+            "time_series": sorted(time_series, key=lambda x: x['timestamp'])[:100],
+            "posts": posts,
+            "status": "success"
+        }
+    except Exception as e:
+        print(f"Error searching keyword: {e}")
+        return {"count": 0, "avg_sentiment": 0, "status": "error", "time_series": [], "posts": []}
+
             
     def get_historical_stats(self, period="daily"):
         """Returns aggregated sentiment statistics for different time periods."""
