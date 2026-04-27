@@ -24,4 +24,4 @@ jobs:
             docker-compose down
             docker-compose up -d --build
             sleep 20
-            docker-compose logs backend --tail=50
+            docker-compose logs --tail=50 backend
