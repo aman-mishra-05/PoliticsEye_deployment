@@ -22,6 +22,8 @@ jobs:
             cd ~/PoliticsEye
             git pull origin main
             docker-compose down --remove-orphans
+            docker rmi politicseye-frontend:latest || true
+            docker rmi politicseye-backend:latest || true
             docker system prune -f
             docker-compose up -d --build
             sleep 20
